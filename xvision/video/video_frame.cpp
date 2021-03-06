@@ -25,6 +25,22 @@ VideoFrame::VideoFrame(VideoFrame &&v) : VideoFrame() {
     std::swap(_ptr, v._ptr); // make VideoFrame empty after moved
 }
 
+VideoFrame &VideoFrame::operator=(const VideoFrame &v) {
+    if (this != &v) {
+        release();
+        av_frame_ref(_ptr, v._ptr);
+    }
+    return *this;
+}
+
+VideoFrame &VideoFrame::operator=(VideoFrame &&v) {
+    if (this != &v) {   // prevent self move
+        release();
+        std::swap(_ptr, v._ptr);
+    }
+    return *this;
+}
+
 void VideoFrame::swap(VideoFrame &v) noexcept { std::swap(_ptr, v._ptr); }
 
 void VideoFrame::create(int width, int height, PixelFormat fmt) {
