@@ -31,7 +31,7 @@ class VideoFrame {
     operator AVFrame *() { return _ptr; }
     void create(int width, int height, PixelFormat fmt);
     void release();
-
+    VideoFrame clone() const;
   protected:
     AVFrame *_ptr = nullptr;
 };

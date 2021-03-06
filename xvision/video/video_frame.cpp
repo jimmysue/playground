@@ -34,7 +34,7 @@ VideoFrame &VideoFrame::operator=(const VideoFrame &v) {
 }
 
 VideoFrame &VideoFrame::operator=(VideoFrame &&v) {
-    if (this != &v) {   // prevent self move
+    if (this != &v) { // prevent self move
         release();
         std::swap(_ptr, v._ptr);
     }
@@ -52,5 +52,11 @@ void VideoFrame::create(int width, int height, PixelFormat fmt) {
 }
 
 void VideoFrame::release() { av_frame_unref(_ptr); }
+
+VideoFrame VideoFrame::clone() const {
+    VideoFrame res(_ptr->width, _ptr->height, PixelFormat(_ptr->format));
+    av_frame_copy_props(res._ptr, _ptr);
+    av_frame_copy(res._ptr, _ptr);
+}
 
 } // namespace xvision
