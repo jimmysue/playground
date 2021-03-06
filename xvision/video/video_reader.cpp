@@ -103,6 +103,7 @@ read_frame:
             receive_frame:;
             }
         }
+        av_packet_unref(&pkt);
     }
     // flush
     ret = avcodec_send_packet(video_dec_ctx, nullptr);
