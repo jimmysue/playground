@@ -4,6 +4,20 @@
 #include <iostream>
 
 namespace xvision {
+
+namespace detail {
+class FFmpegRegister {
+  public:
+    static void init() { static FFmpegRegister instance; }
+
+  private:
+    FFmpegRegister() {
+        avcodec_register_all();
+        av_register_all();
+    }
+};
+} // namespace detail
+
 VideoReader::VideoReader(std::string const &filename, int thread_cout) {
     open(filename, thread_cout);
 }
@@ -16,6 +30,7 @@ VideoReader::~VideoReader() {
 }
 
 void VideoReader::open(std::string const &filename, int thread_cout) {
+    detail::FFmpegRegister::init();
     if (isOpen()) {
         close();
     }
@@ -23,10 +38,10 @@ void VideoReader::open(std::string const &filename, int thread_cout) {
         throw std::invalid_argument("avformat_open_input failed");
     }
     int ret;
-    AVStream *st;
-    AVCodecContext *dec_ctx = NULL;
-    AVCodec *dec = NULL;
-    AVDictionary *opts = NULL;
+    AVStream *st=nullptr;
+    AVCodecContext *dec_ctx = nullptr;
+    AVCodec *dec = nullptr;
+    AVDictionary *opts = nullptr;
     AVMediaType type = AVMediaType::AVMEDIA_TYPE_VIDEO;
 
     ret = av_find_best_stream(fmt_ctx, type, -1, -1, &dec, 0);

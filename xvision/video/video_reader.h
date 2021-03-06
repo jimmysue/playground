@@ -28,9 +28,6 @@ class VideoReader {
     };
 
   public:
-    using RotationMode = RotationMode;
-
-  public:
     VideoReader() = default;
     VideoReader(std::string const &filename, int thread_cout = 1);
     ~VideoReader();
