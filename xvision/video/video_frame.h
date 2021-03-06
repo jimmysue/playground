@@ -23,8 +23,8 @@ class VideoFrame {
     ~VideoFrame();
     VideoFrame(const VideoFrame &v);
     VideoFrame(VideoFrame &&v);
-    VideoFrame& operator=(const VideoFrame &v);
-    VideoFrame& operator=(VideoFrame&& v);
+    VideoFrame &operator=(const VideoFrame &v);
+    VideoFrame &operator=(VideoFrame &&v);
     void swap(VideoFrame &v) noexcept;
     const AVFrame *operator->() const { return _ptr; };
     AVFrame *operator->() { return _ptr; };
@@ -35,4 +35,6 @@ class VideoFrame {
   protected:
     AVFrame *_ptr = nullptr;
 };
+using PixelFormat = VideoFrame::PixelFormat;
+
 } // namespace xvision
