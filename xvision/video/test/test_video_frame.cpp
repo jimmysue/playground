@@ -1,5 +1,10 @@
 #include <iostream>
 #include <vector>
+#include <sstream>
+
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+
 
 #include "xvision/video/video_frame.h"
 #include "xvision/video/video_reader.h"
@@ -7,7 +12,22 @@
 using namespace xvision;
 using namespace std;
 
-void testVideoReader() { VideoReader vr1("/Users/jimmy/Documents/Projects/Github/playground/xvision/asset/test.mp4"); }
+void testVideoReader() {
+    VideoReader vr1("/Users/jimmy/Documents/Projects/Github/playground/xvision/"
+                    "asset/test.mp4");
+    int count = 0;
+    while (vr1.grab()) {
+        count++;
+        auto frame = vr1.retrieve();
+        cout << "frame number: " << vr1.number() << endl;
+        cv::Mat gray(frame->height, frame->width, CV_8UC1, frame->data[0],
+                     frame->linesize[0]);
+        stringstream ss;
+        ss << count << ".jpeg";
+        cv::imwrite(ss.str(), gray);
+    }
+    cout << "total: " << vr1.total() << " count: " << count << endl;
+}
 
 void testVideoFrame() {
     VideoFrame frame;

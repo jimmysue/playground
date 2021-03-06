@@ -20,6 +20,13 @@ namespace xvision {
 enum RotationMode { kRotate0, kRotate90, kRotate180, kRotate270 };
 
 class VideoReader {
+  private:
+    enum class GrabStatus {
+        kReadFrame,
+        kReceiveFrame,
+        kFlushFrame,
+    };
+
   public:
     using RotationMode = RotationMode;
 
@@ -35,24 +42,29 @@ class VideoReader {
     void open(std::string const &filename, int thread_cout = 1);
     void close();
     bool isOpen() const;
-    void swap(VideoReader& v) noexcept;
+    void swap(VideoReader &v) noexcept;
 
     bool grab();
-    VideoFrame retrieve() const;
+    const VideoFrame &retrieve() const { return frame; };
     VideoFrame retrieveCopy() const;
 
     // meta info getters
-    int width() const;
-    int height() const;
+    int width() const { return isOpen() ? video_dec_ctx->width : 0; };
+    int height() const { return isOpen() ? video_dec_ctx->height : 0; };
     double fps() const;
-    int total() const;
+    int total() const { return isOpen() ? video_stream->nb_frames : 0; };
     double duration() const;
     RotationMode rotation() const;
+    int number() const;
 
   protected:
     void init();
+    int dts2number(int64_t dts) const;
+    double dts2sec(int64_t dts) const;
+    double r2d(AVRational r) const;
 
   private:
+    GrabStatus status = GrabStatus::kReadFrame;
     int video_stream_idx = -1;
     AVFormatContext *fmt_ctx = nullptr;
     AVCodecContext *video_dec_ctx = nullptr;

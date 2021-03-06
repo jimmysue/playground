@@ -1,6 +1,7 @@
 #include "video_reader.h"
 
 #include <exception>
+#include <iostream>
 
 namespace xvision {
 VideoReader::VideoReader(std::string const &filename, int thread_cout) {
@@ -61,11 +62,80 @@ void VideoReader::open(std::string const &filename, int thread_cout) {
 void VideoReader::close() {
     avcodec_free_context(&video_dec_ctx);
     avformat_close_input(&fmt_ctx);
+    if (pkt.data) {
+        av_packet_unref(&pkt);
+    }
+    frame.release();
     init();
 }
 
 bool VideoReader::isOpen() const {
     return fmt_ctx && video_dec_ctx && video_stream && video_stream_idx >= 0;
+}
+
+bool VideoReader::grab() {
+    int ret = 0;
+    switch (status) {
+    case GrabStatus::kReadFrame:
+        goto read_frame;
+    case GrabStatus::kReceiveFrame:
+        goto receive_frame;
+    case GrabStatus::kFlushFrame:
+        goto flush_frame;
+    default:
+        return false;
+    }
+read_frame:
+    while (av_read_frame(fmt_ctx, &pkt) >= 0) {
+        if (pkt.stream_index == video_stream_idx) {
+            ret = avcodec_send_packet(video_dec_ctx, &pkt);
+            while (ret >= 0) {
+                ret = avcodec_receive_frame(video_dec_ctx, frame);
+                if (ret == AVERROR(EAGAIN)) {
+                    break;
+                } else if (ret == AVERROR_EOF) {
+                    return false;
+                } else if (ret < 0) {
+                    throw std::runtime_error("avcodec_receive_frame error");
+                }
+                status = GrabStatus::kReceiveFrame;
+                return true;
+            receive_frame:;
+            }
+        }
+    }
+    // flush
+    ret = avcodec_send_packet(video_dec_ctx, nullptr);
+    while (ret >= 0) {
+        ret = avcodec_receive_frame(video_dec_ctx, frame);
+        if (ret == AVERROR(EAGAIN)) {
+            break;
+        } else if (ret == AVERROR_EOF) {
+            return false;
+        } else if (ret < 0) {
+            throw std::runtime_error("avcodec_receive_frame error");
+        }
+        status = GrabStatus::kFlushFrame;
+        return true;
+    flush_frame:;
+    }
+    return false;
+}
+
+double VideoReader::fps() const {
+    double fps = r2d(video_stream->avg_frame_rate);
+    if (fps < 1e-9) {
+        fps = 1.0 / r2d(video_dec_ctx->time_base);
+    }
+    return fps;
+}
+
+int VideoReader::number() const {
+    if (isOpen()) {
+        return dts2number(frame->best_effort_timestamp -
+                          video_stream->start_time);
+    }
+    return -1;
 }
 
 void VideoReader::swap(VideoReader &v) noexcept {
@@ -82,7 +152,22 @@ void VideoReader::init() {
     fmt_ctx = nullptr;
     video_dec_ctx = nullptr;
     video_stream = nullptr;
-    frame.release();
+    memset(&pkt, 0, sizeof(pkt));
+    av_init_packet(&pkt);
+    status = GrabStatus::kReadFrame;
+}
+
+int VideoReader::dts2number(int64_t dts) const {
+    double sec = dts2sec(dts);
+    return int(fps() * sec + .5);
+}
+
+double VideoReader::dts2sec(int64_t dts) const {
+    return (dts - video_stream->start_time) * r2d(video_stream->time_base);
+}
+
+double VideoReader::r2d(AVRational r) const {
+    return r.num == 0 || r.den == 0 ? 0. : double(r.num) / double(r.den);
 }
 
 } // namespace xvision

@@ -1,5 +1,4 @@
 
-
 find_package(FFmpeg REQUIRED)
 
 set(SOURCES 
