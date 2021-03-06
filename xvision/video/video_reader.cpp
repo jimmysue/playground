@@ -68,6 +68,15 @@ bool VideoReader::isOpen() const {
     return fmt_ctx && video_dec_ctx && video_stream && video_stream_idx >= 0;
 }
 
+void VideoReader::swap(VideoReader &v) noexcept {
+    std::swap(v.video_stream_idx, video_stream_idx);
+    std::swap(v.fmt_ctx, fmt_ctx);
+    std::swap(v.video_dec_ctx, video_dec_ctx);
+    std::swap(v.frame, frame);
+    std::swap(v.pkt, pkt);
+    std::swap(v.video_stream, video_stream);
+}
+
 void VideoReader::init() {
     video_stream_idx = -1;
     fmt_ctx = nullptr;

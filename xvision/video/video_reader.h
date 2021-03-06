@@ -27,14 +27,15 @@ class VideoReader {
     VideoReader() = default;
     VideoReader(std::string const &filename, int thread_cout = 1);
     ~VideoReader();
-    VideoReader(const VideoReader &v);
+    VideoReader(const VideoReader &v) = delete;
     VideoReader(VideoReader &&v);
-    VideoReader &operator=(const VideoReader &v);
+    VideoReader &operator=(const VideoReader &v) = delete;
     VideoReader &operator=(VideoReader &&v);
 
     void open(std::string const &filename, int thread_cout = 1);
     void close();
     bool isOpen() const;
+    void swap(VideoReader& v) noexcept;
 
     bool grab();
     VideoFrame retrieve() const;
