@@ -43,7 +43,7 @@ class VideoReader {
 
     bool grab();
     const VideoFrame &retrieve() const { return frame; };
-    VideoFrame retrieveCopy() const;
+    VideoFrame retrieveCopy() const { return frame.clone(); };
 
     // meta info getters
     int width() const { return isOpen() ? video_dec_ctx->width : 0; };
