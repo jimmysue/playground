@@ -25,19 +25,8 @@ VideoFrame::VideoFrame(VideoFrame &&v) : VideoFrame() {
     std::swap(_ptr, v._ptr); // make VideoFrame empty after moved
 }
 
-VideoFrame &VideoFrame::operator=(const VideoFrame &v) {
-    if (this != &v) {
-        release();
-        av_frame_ref(_ptr, v._ptr);
-    }
-    return *this;
-}
-
-VideoFrame &VideoFrame::operator=(VideoFrame &&v) {
-    if (this != &v) { // prevent self move
-        release();
-        std::swap(_ptr, v._ptr);
-    }
+VideoFrame &VideoFrame::operator=(VideoFrame v) {
+    std::swap(*this, v);
     return *this;
 }
 
@@ -58,5 +47,7 @@ VideoFrame VideoFrame::clone() const {
     av_frame_copy_props(res._ptr, _ptr);
     av_frame_copy(res._ptr, _ptr);
 }
+
+bool VideoFrame::empty() const { return _ptr->width <= 0 || _ptr->height <= 0; }
 
 } // namespace xvision
