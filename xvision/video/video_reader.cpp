@@ -38,7 +38,7 @@ void VideoReader::open(std::string const &filename, int thread_cout) {
         throw std::invalid_argument("avformat_open_input failed");
     }
     int ret;
-    AVStream *st=nullptr;
+    AVStream *st = nullptr;
     AVCodecContext *dec_ctx = nullptr;
     AVCodec *dec = nullptr;
     AVDictionary *opts = nullptr;
@@ -95,6 +95,8 @@ bool VideoReader::grab() {
         goto read_frame;
     case GrabStatus::kReceiveFrame:
         goto receive_frame;
+    case GrabStatus::kResendPacket:
+        goto resend_packet;
     case GrabStatus::kFlushFrame:
         goto flush_frame;
     default:
@@ -103,21 +105,22 @@ bool VideoReader::grab() {
 read_frame:
     while (av_read_frame(fmt_ctx, &pkt) >= 0) {
         if (pkt.stream_index == video_stream_idx) {
+            resend_packet:
             ret = avcodec_send_packet(video_dec_ctx, &pkt);
-            while (ret >= 0) {
+            if (ret == AVERROR(EAGAIN)) {
                 ret = avcodec_receive_frame(video_dec_ctx, frame);
                 if (ret == AVERROR(EAGAIN)) {
-                    break;
+                    goto receive_frame;
                 } else if (ret == AVERROR_EOF) {
                     return false;
                 } else if (ret < 0) {
                     throw std::runtime_error("avcodec_receive_frame error");
                 }
-                status = GrabStatus::kReceiveFrame;
+                status = GrabStatus::kResendPacket;
                 return true;
-            receive_frame:;
             }
         }
+    receive_frame:
         av_packet_unref(&pkt);
     }
     // flush

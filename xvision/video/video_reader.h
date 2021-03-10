@@ -23,6 +23,7 @@ class VideoReader {
   private:
     enum class GrabStatus {
         kReadFrame,
+        kResendPacket,
         kReceiveFrame,
         kFlushFrame,
     };
