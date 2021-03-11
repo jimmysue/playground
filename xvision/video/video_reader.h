@@ -23,6 +23,7 @@ class VideoReader {
   private:
     enum class GrabStatus {
         kReadFrame,
+        kSendPacket,
         kReceiveFrame,
         kFlushFrame,
     };
@@ -40,6 +41,10 @@ class VideoReader {
     void close();
     bool isOpen() const;
     void swap(VideoReader &v) noexcept;
+    int seekFrame(int number);
+    int seekFrame(double time);
+    int seekKeyFrame(int number, bool backward = true);
+    int seekKeyFrame(double time, bool backward = true);
 
     bool grab();
     const VideoFrame &retrieve() const { return frame; };
@@ -56,6 +61,7 @@ class VideoReader {
 
   protected:
     void init();
+    bool grabPacket();
     int dts2number(int64_t dts) const;
     double dts2sec(int64_t dts) const;
     double r2d(AVRational r) const;

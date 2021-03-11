@@ -38,7 +38,7 @@ void VideoReader::open(std::string const &filename, int thread_cout) {
         throw std::invalid_argument("avformat_open_input failed");
     }
     int ret;
-    AVStream *st=nullptr;
+    AVStream *st = nullptr;
     AVCodecContext *dec_ctx = nullptr;
     AVCodec *dec = nullptr;
     AVDictionary *opts = nullptr;
@@ -93,6 +93,8 @@ bool VideoReader::grab() {
     switch (status) {
     case GrabStatus::kReadFrame:
         goto read_frame;
+    case GrabStatus::kSendPacket:
+        goto send_packet;
     case GrabStatus::kReceiveFrame:
         goto receive_frame;
     case GrabStatus::kFlushFrame:
@@ -103,18 +105,21 @@ bool VideoReader::grab() {
 read_frame:
     while (av_read_frame(fmt_ctx, &pkt) >= 0) {
         if (pkt.stream_index == video_stream_idx) {
+        send_packet:
             ret = avcodec_send_packet(video_dec_ctx, &pkt);
+
             while (ret >= 0) {
                 ret = avcodec_receive_frame(video_dec_ctx, frame);
-                if (ret == AVERROR(EAGAIN)) {
+                if (ret >= 0) {
+                    status = GrabStatus::kReceiveFrame;
+                    return true;
+                } else if (ret == AVERROR(EAGAIN)) {
                     break;
                 } else if (ret == AVERROR_EOF) {
                     return false;
                 } else if (ret < 0) {
                     throw std::runtime_error("avcodec_receive_frame error");
                 }
-                status = GrabStatus::kReceiveFrame;
-                return true;
             receive_frame:;
             }
         }
@@ -163,6 +168,54 @@ void VideoReader::swap(VideoReader &v) noexcept {
     std::swap(v.video_stream, video_stream);
 }
 
+int VideoReader::seekFrame(int number) {
+    number = std::max(0, std::min(total(), number));
+    int delta = 2;
+    int pos = seekKeyFrame(number - delta);
+    while (pos > number) {
+        delta = delta < 16 ? delta * 2 : delta * 3 / 2;
+        pos = seekKeyFrame(number - delta);
+    }
+    while (pos < number - 1) {
+        grab();
+        pos = this->number() + 1;
+    }
+    return pos;
+}
+
+int VideoReader::seekKeyFrame(int number, bool backward) {
+    if (pkt.data)
+        av_packet_unref(&pkt);
+    number = std::max(0, std::min(total(), number));
+    double second = number / fps();
+    double timebase = r2d(video_stream->time_base);
+    int64_t timestamp =
+        video_stream->start_time + (int64_t)(second / timebase + .5);
+    if (total() > 0) {
+        int flag = backward ? AVSEEK_FLAG_BACKWARD : 0;
+        int ret = av_seek_frame(fmt_ctx, video_stream_idx, timestamp, flag);
+        if (ret < 0) {
+            throw std::runtime_error("av_seek_frame failed");
+        }
+        avcodec_flush_buffers(video_dec_ctx);
+        while (av_read_frame(fmt_ctx, &pkt) >= 0) {
+            if (pkt.stream_index == video_stream_idx) {
+                int ret = avcodec_send_packet(video_dec_ctx, &pkt);
+                if (ret >= 0) {
+                    status = GrabStatus::kReceiveFrame;
+                } else if (ret == AVERROR(EAGAIN)) {
+                    status = GrabStatus::kSendPacket;
+                } else {
+                    throw std::runtime_error(
+                        "avcodec_send_packet failed when seekKeyFrame");
+                }
+                return dts2number(pkt.dts);
+            }
+        }
+    }
+    return total();
+}
+
 void VideoReader::init() {
     video_stream_idx = -1;
     fmt_ctx = nullptr;
@@ -171,6 +224,23 @@ void VideoReader::init() {
     memset(&pkt, 0, sizeof(pkt));
     av_init_packet(&pkt);
     status = GrabStatus::kReadFrame;
+}
+
+bool VideoReader::grabPacket() {
+    if (pkt.data)
+        av_packet_unref(&pkt);
+    while (av_read_frame(fmt_ctx, &pkt) >= 0) {
+        if (pkt.stream_index == video_stream_idx) {
+            int flag = avcodec_send_packet(video_dec_ctx, &pkt);
+            if (flag >= 0) {
+                status = GrabStatus::kReceiveFrame;
+            } else if () {
+                status = GrabStatus::kSendPacket;
+            }
+            return true;
+        }
+    }
+    return false;
 }
 
 int VideoReader::dts2number(int64_t dts) const {
