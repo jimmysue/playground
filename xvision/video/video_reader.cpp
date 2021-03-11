@@ -23,6 +23,16 @@ VideoReader::VideoReader(std::string const &filename, int thread_cout)
     open(filename, thread_cout);
 }
 
+VideoReader::VideoReader(VideoReader &&v) : VideoReader() { this->swap(v); }
+
+VideoReader &VideoReader::operator=(VideoReader &&v) {
+    if (this != &v) {
+        close();
+        swap(v);
+    }
+    return *this;
+}
+
 VideoReader::~VideoReader() {
     if (isOpen()) {
         close();
@@ -32,9 +42,7 @@ VideoReader::~VideoReader() {
 
 void VideoReader::open(std::string const &filename, int thread_cout) {
     detail::FFmpegRegister::init();
-    if (isOpen()) {
-        close();
-    }
+    close();
     if (avformat_open_input(&fmt_ctx, filename.c_str(), NULL, NULL) < 0) {
         throw std::invalid_argument("avformat_open_input failed");
     }
@@ -76,8 +84,12 @@ void VideoReader::open(std::string const &filename, int thread_cout) {
 }
 
 void VideoReader::close() {
-    avcodec_free_context(&video_dec_ctx);
-    avformat_close_input(&fmt_ctx);
+    if (video_dec_ctx) {
+        avcodec_free_context(&video_dec_ctx);
+    }
+    if (fmt_ctx) {
+        avformat_close_input(&fmt_ctx);
+    }
     if (pkt.data) {
         av_packet_unref(&pkt);
     }
@@ -87,6 +99,16 @@ void VideoReader::close() {
 
 bool VideoReader::isOpen() const {
     return fmt_ctx && video_dec_ctx && video_stream && video_stream_idx >= 0;
+}
+
+void VideoReader::swap(VideoReader &v) noexcept {
+    std::swap(status, v.status);
+    std::swap(fmt_ctx, v.fmt_ctx);
+    std::swap(video_dec_ctx, v.video_dec_ctx);
+    std::swap(video_stream_idx, v.video_stream_idx);
+    std::swap(video_stream, v.video_stream);
+    std::swap(frame, v.frame);
+    std::swap(pkt, v.pkt);
 }
 
 bool VideoReader::grab() {
@@ -152,21 +174,34 @@ double VideoReader::fps() const {
     return fps;
 }
 
+double VideoReader::duration() const {
+    double sec = (double)video_stream->duration * r2d(video_stream->time_base);
+    if (sec < 1e-9) {
+        sec = (double)(video_stream->duration) / double(AV_TIME_BASE);
+    }
+    return sec;
+}
+
+RotationMode VideoReader::rotation() const {
+    int rotate = 0;
+    AVDictionaryEntry *rotate_tag =
+        av_dict_get(video_stream->metadata, "rotate", NULL, 0);
+    if (rotate_tag != NULL)
+        rotate = atoi(rotate_tag->value);
+    int index = rotate / 90 % 4;
+    index = index < 0 ? 0 : index;
+    static const RotationMode modes[4] = {
+        RotationMode::kRotate0, RotationMode::kRotate90,
+        RotationMode::kRotate180, RotationMode::kRotate270};
+    return modes[index];
+}
+
 int VideoReader::number() const {
     if (isOpen()) {
         return dts2number(frame->best_effort_timestamp -
                           video_stream->start_time);
     }
     return -1;
-}
-
-void VideoReader::swap(VideoReader &v) noexcept {
-    std::swap(v.video_stream_idx, video_stream_idx);
-    std::swap(v.fmt_ctx, fmt_ctx);
-    std::swap(v.video_dec_ctx, video_dec_ctx);
-    std::swap(v.frame, frame);
-    std::swap(v.pkt, pkt);
-    std::swap(v.video_stream, video_stream);
 }
 
 int VideoReader::seekFrame(int number) {
@@ -182,6 +217,10 @@ int VideoReader::seekFrame(int number) {
         pos = this->number() + 1;
     }
     return pos;
+}
+
+int VideoReader::seekFrame(double time) {
+    return seekFrame(int(time * fps() + 0.5));
 }
 
 int VideoReader::seekKeyFrame(int number, bool backward) {
@@ -210,6 +249,10 @@ int VideoReader::seekKeyFrame(int number, bool backward) {
         }
     }
     return total();
+}
+
+int VideoReader::seekKeyFrame(double time, bool backward) {
+    return seekKeyFrame(int(fps() * time + 0.5), backward);
 }
 
 void VideoReader::init() {

@@ -58,6 +58,7 @@ class VideoReader {
     double duration() const;
     RotationMode rotation() const;
     int number() const;
+    
 
   protected:
     void init();

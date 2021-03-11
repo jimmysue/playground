@@ -1,10 +1,9 @@
 #include <iostream>
-#include <vector>
 #include <sstream>
+#include <vector>
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
-
 
 #include "xvision/video/video_frame.h"
 #include "xvision/video/video_reader.h"
@@ -24,18 +23,37 @@ void testVideoReader() {
 }
 
 void testVideoSeekKeyFrame() {
-    VideoReader vr("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
-    int count = 0;
-    for (int i = 0; i < vr.total(); ++i){
+    VideoReader vr;
+    {
+        vr.close();
+        VideoReader vr2("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
+        vr2.close();
+        bool is_open = vr2.isOpen();
+        vr2.open("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
+        vr = std::move(vr2);
+        auto vr3 =
+            VideoReader("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
+    }
+
+    for (int i = 0; i < vr.total(); ++i) {
         int pos = vr.seekKeyFrame(i);
         std::cout << "seek: " << i << " pos: " << pos << std::endl;
     }
+    auto rotation = vr.rotation();
+    int count = 0;
+    int width = vr.width();
+    int height = vr.height();
+    double fps = vr.fps();
+    double duration = vr.duration();
+    int k = vr.seekKeyFrame(80.5);
+    std::cout << "rotation " << rotation << std::endl
+              << "after seek : " << k << std::endl;
 }
 
 void testVideoSeekFrame() {
     VideoReader vr("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4", 8);
     int count = 0;
-    for (int i = 0; i < vr.total(); ++i){
+    for (int i = 0; i < vr.total(); ++i) {
         int pos = vr.seekFrame(i);
         std::cout << "seek: " << i << " pos: " << pos << std::endl;
     }
@@ -57,5 +75,7 @@ void testVideoFrame() {
 }
 
 int main(int argc, char **argv) {
+    testVideoFrame();
+    testVideoSeekKeyFrame();
     testVideoSeekFrame();
 }
