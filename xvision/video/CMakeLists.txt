@@ -15,6 +15,8 @@ include_directories(
 )
 
 message(STATUS "ffmpeg includes: ${FFMPEG_INCLUDE_DIRS}")
+message(STATUS "==> ${LibYUV_LIBRARIES}")
+message(STATUS "==> ${FFMPEG_LIBRARIES}")
 
 add_library(video ${SOURCES})
 target_link_libraries(video ${FFMPEG_LIBRARIES} ${LibYUV_LIBRARIES} ${OpenCV_LIBS})

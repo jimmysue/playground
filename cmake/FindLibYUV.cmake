@@ -49,7 +49,7 @@ They may be set by end users to point at LibYUV components.
 
 #-----------------------------------------------------------------------------
 find_library(LibYUV_LIBRARY
-  NAMES libyuv LibYUV
+  NAMES libyuv.a LibYUV
   )
 mark_as_advanced(LibYUV_LIBRARY)
 

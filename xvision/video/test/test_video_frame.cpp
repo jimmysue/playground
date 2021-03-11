@@ -62,14 +62,13 @@ void testVideoSeekFrame() {
 
 void testVideoFrame() {
     VideoFrame frame;
-    VideoFrame f2(100, 332, xvision::VideoFrame::PixelFormat::AV_PIX_FMT_ARGB);
+    VideoFrame f2(100, 332, xvision::PixelFormat::AV_PIX_FMT_ARGB);
     f2 = std::move(f2);
     VideoFrame f3 = f2;
     {
         frame = f3;
         std::swap(frame, f3);
-        auto f4 = VideoFrame(100, 332,
-                             xvision::VideoFrame::PixelFormat::AV_PIX_FMT_ARGB);
+        auto f4 = VideoFrame(100, 332, xvision::PixelFormat::AV_PIX_FMT_ARGB);
     }
 
     cout << "width: " << f2->width << ", "
@@ -80,7 +79,33 @@ void testVideoFrame() {
     auto v2 = std::move(vec);
 }
 
+void testVideoFrameProc() {
+    VideoReader vr1("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
+    int count = 0;
+    while (vr1.grab()) {
+        count++;
+        auto frame = vr1.retrieve();
+        std::stringstream ss;
+
+        ss << count << ".jpeg";
+        cv::imwrite(ss.str(), frame.mat());
+
+        ss.clear();
+        ss.str("");
+        ss << count << "-gray.jpeg";
+        cv::imwrite(ss.str(), frame.mat(cv::IMREAD_GRAYSCALE));
+
+        auto scaled = frame.scale(100, 100);
+        ss.clear();
+        ss.str("");
+        ss << count << "-scale.jpeg";
+        cv::imwrite(ss.str(), scaled.mat());
+    }
+    cout << "total: " << vr1.total() << " count: " << count << endl;
+}
+
 int main(int argc, char **argv) {
+    testVideoFrameProc();
     testVideoFrame();
     testVideoSeekKeyFrame();
     testVideoSeekFrame();

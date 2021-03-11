@@ -16,13 +16,14 @@ extern "C" {
 #include <libyuv/scale.h>
 
 #include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+
 namespace xvision {
+
 using RotationMode = libyuv::RotationMode;
+using PixelFormat = AVPixelFormat;
 
 class VideoFrame {
-  public:
-    using PixelFormat = AVPixelFormat;
-
   public:
     VideoFrame();
     VideoFrame(int width, int height, PixelFormat fmt);
@@ -42,15 +43,17 @@ class VideoFrame {
     bool empty() const;
 
     // basic image processing
-    VideoFrame convert(PixelFormat fmt);
-    VideoFrame scale(int width, int height);
-    VideoFrame rotate(RotationMode mode);
 
-    cv::Mat mat() const;
+    // TODO: 
+    VideoFrame convert(PixelFormat fmt) const;
+    VideoFrame scale(int width, int height) const;
+    VideoFrame rotate(RotationMode mode) const;
+
+    /// flag = cv::IMREAD_COLOR or cv::IMREAD_GRAYSCALE
+    cv::Mat mat(int flag=cv::IMREAD_COLOR) const;
 
   protected:
     AVFrame *_ptr = nullptr;
 };
-using PixelFormat = VideoFrame::PixelFormat;
 
 } // namespace xvision
