@@ -22,7 +22,10 @@ class VideoFrame {
     VideoFrame(int width, int height, PixelFormat fmt);
     ~VideoFrame();
     VideoFrame(const VideoFrame &v);
-    VideoFrame &operator=(VideoFrame v);  // copy-and-swap
+    VideoFrame(VideoFrame &&v);
+    VideoFrame &operator=(const VideoFrame &v); // copy-and-swap
+    VideoFrame &operator=(VideoFrame&& v); // copy-and-swap
+
     void swap(VideoFrame &v) noexcept;
     const AVFrame *operator->() const { return _ptr; };
     AVFrame *operator->() { return _ptr; };
@@ -31,6 +34,7 @@ class VideoFrame {
     void release();
     VideoFrame clone() const;
     bool empty() const;
+
   protected:
     AVFrame *_ptr = nullptr;
 };

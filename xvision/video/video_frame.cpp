@@ -21,8 +21,21 @@ VideoFrame::VideoFrame(const VideoFrame &v) : VideoFrame() {
     av_frame_ref(_ptr, v._ptr);
 }
 
-VideoFrame &VideoFrame::operator=(VideoFrame v) {
-    this->swap(v);
+VideoFrame::VideoFrame(VideoFrame &&v) : VideoFrame() { swap(v); }
+
+VideoFrame &VideoFrame::operator=(const VideoFrame &v) {
+    if (this != &v) {
+        this->release();
+        av_frame_ref(_ptr, v._ptr);
+    }
+    return *this;
+}
+
+VideoFrame &VideoFrame::operator=(VideoFrame &&v) {
+    if (this != &v) {
+        this->release();
+        swap(v);
+    }
     return *this;
 }
 
