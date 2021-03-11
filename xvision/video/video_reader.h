@@ -29,7 +29,7 @@ class VideoReader {
     };
 
   public:
-    VideoReader() = default;
+    VideoReader() { init(); };
     VideoReader(std::string const &filename, int thread_cout = 1);
     ~VideoReader();
     VideoReader(const VideoReader &v) = delete;

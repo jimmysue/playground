@@ -13,20 +13,32 @@ using namespace xvision;
 using namespace std;
 
 void testVideoReader() {
-    VideoReader vr1("/Users/jimmy/Documents/Projects/Github/playground/xvision/"
-                    "asset/test.mp4");
+    VideoReader vr1("/Users/jimmy/Documents/智能封面图/testset2/l3160goot8i.mp4");
     int count = 0;
     while (vr1.grab()) {
         count++;
         auto frame = vr1.retrieve();
         cout << "frame number: " << vr1.number() << endl;
-        cv::Mat gray(frame->height, frame->width, CV_8UC1, frame->data[0],
-                     frame->linesize[0]);
-        stringstream ss;
-        ss << count << ".jpeg";
-        cv::imwrite(ss.str(), gray);
     }
     cout << "total: " << vr1.total() << " count: " << count << endl;
+}
+
+void testVideoSeekKeyFrame() {
+    VideoReader vr("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
+    int count = 0;
+    for (int i = 0; i < vr.total(); ++i){
+        int pos = vr.seekKeyFrame(i);
+        std::cout << "seek: " << i << " pos: " << pos << std::endl;
+    }
+}
+
+void testVideoSeekFrame() {
+    VideoReader vr("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
+    int count = 0;
+    for (int i = 0; i < vr.total(); ++i){
+        int pos = vr.seekFrame(i);
+        std::cout << "seek: " << i << " pos: " << pos << std::endl;
+    }
 }
 
 void testVideoFrame() {
@@ -45,6 +57,5 @@ void testVideoFrame() {
 }
 
 int main(int argc, char **argv) {
-    testVideoFrame();
-    testVideoReader();
+    testVideoSeekFrame();
 }

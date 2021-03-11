@@ -18,7 +18,8 @@ class FFmpegRegister {
 };
 } // namespace detail
 
-VideoReader::VideoReader(std::string const &filename, int thread_cout) {
+VideoReader::VideoReader(std::string const &filename, int thread_cout)
+    : VideoReader() {
     open(filename, thread_cout);
 }
 
@@ -104,6 +105,8 @@ bool VideoReader::grab() {
     }
 read_frame:
     while (av_read_frame(fmt_ctx, &pkt) >= 0) {
+        std::cout << "av_read_frame grab" << std::endl;
+
         if (pkt.stream_index == video_stream_idx) {
         send_packet:
             ret = avcodec_send_packet(video_dec_ctx, &pkt);
@@ -123,6 +126,7 @@ read_frame:
             receive_frame:;
             }
         }
+        std::cout << "av_packet_unref" << std::endl;
         av_packet_unref(&pkt);
     }
     // flush
@@ -176,7 +180,7 @@ int VideoReader::seekFrame(int number) {
         delta = delta < 16 ? delta * 2 : delta * 3 / 2;
         pos = seekKeyFrame(number - delta);
     }
-    while (pos < number - 1) {
+    while (pos < number) {
         grab();
         pos = this->number() + 1;
     }
@@ -184,8 +188,10 @@ int VideoReader::seekFrame(int number) {
 }
 
 int VideoReader::seekKeyFrame(int number, bool backward) {
-    if (pkt.data)
+    if (pkt.data) {
+        std::cout << "av_packet_unref" << std::endl;
         av_packet_unref(&pkt);
+    }
     number = std::max(0, std::min(total(), number));
     double second = number / fps();
     double timebase = r2d(video_stream->time_base);
@@ -199,18 +205,14 @@ int VideoReader::seekKeyFrame(int number, bool backward) {
         }
         avcodec_flush_buffers(video_dec_ctx);
         while (av_read_frame(fmt_ctx, &pkt) >= 0) {
+            std::cout << "av_read_frame seekKeyFrame" << std::endl;
+
             if (pkt.stream_index == video_stream_idx) {
-                int ret = avcodec_send_packet(video_dec_ctx, &pkt);
-                if (ret >= 0) {
-                    status = GrabStatus::kReceiveFrame;
-                } else if (ret == AVERROR(EAGAIN)) {
-                    status = GrabStatus::kSendPacket;
-                } else {
-                    throw std::runtime_error(
-                        "avcodec_send_packet failed when seekKeyFrame");
-                }
+                status = GrabStatus::kSendPacket;
                 return dts2number(pkt.dts);
             }
+            std::cout << "av_packet_unref" << std::endl;
+            av_packet_unref(&pkt);
         }
     }
     return total();
@@ -224,23 +226,6 @@ void VideoReader::init() {
     memset(&pkt, 0, sizeof(pkt));
     av_init_packet(&pkt);
     status = GrabStatus::kReadFrame;
-}
-
-bool VideoReader::grabPacket() {
-    if (pkt.data)
-        av_packet_unref(&pkt);
-    while (av_read_frame(fmt_ctx, &pkt) >= 0) {
-        if (pkt.stream_index == video_stream_idx) {
-            int flag = avcodec_send_packet(video_dec_ctx, &pkt);
-            if (flag >= 0) {
-                status = GrabStatus::kReceiveFrame;
-            } else if () {
-                status = GrabStatus::kSendPacket;
-            }
-            return true;
-        }
-    }
-    return false;
 }
 
 int VideoReader::dts2number(int64_t dts) const {
