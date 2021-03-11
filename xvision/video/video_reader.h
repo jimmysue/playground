@@ -60,8 +60,6 @@ class VideoReader {
     RotationMode rotation() const;
     int number() const;
 
-    int time2number(double time) const;
-
   protected:
     void init();
     int dts2number(int64_t dts) const;
