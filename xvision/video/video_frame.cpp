@@ -21,12 +21,8 @@ VideoFrame::VideoFrame(const VideoFrame &v) : VideoFrame() {
     av_frame_ref(_ptr, v._ptr);
 }
 
-VideoFrame::VideoFrame(VideoFrame &&v) : VideoFrame() {
-    std::swap(_ptr, v._ptr); // make VideoFrame empty after moved
-}
-
 VideoFrame &VideoFrame::operator=(VideoFrame v) {
-    std::swap(*this, v);
+    this->swap(v);
     return *this;
 }
 

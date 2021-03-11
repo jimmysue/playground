@@ -22,7 +22,6 @@ class VideoFrame {
     VideoFrame(int width, int height, PixelFormat fmt);
     ~VideoFrame();
     VideoFrame(const VideoFrame &v);
-    VideoFrame(VideoFrame &&v);
     VideoFrame &operator=(VideoFrame v);  // copy-and-swap
     void swap(VideoFrame &v) noexcept;
     const AVFrame *operator->() const { return _ptr; };
