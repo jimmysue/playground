@@ -11,7 +11,13 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
+#include <libyuv/convert.h>
+#include <libyuv/rotate.h>
+#include <libyuv/scale.h>
+
+#include <opencv2/core.hpp>
 namespace xvision {
+using RotationMode = libyuv::RotationMode;
 
 class VideoFrame {
   public:
@@ -24,7 +30,7 @@ class VideoFrame {
     VideoFrame(const VideoFrame &v);
     VideoFrame(VideoFrame &&v);
     VideoFrame &operator=(const VideoFrame &v); // copy-and-swap
-    VideoFrame &operator=(VideoFrame&& v); // copy-and-swap
+    VideoFrame &operator=(VideoFrame &&v);      // copy-and-swap
 
     void swap(VideoFrame &v) noexcept;
     const AVFrame *operator->() const { return _ptr; };
@@ -34,6 +40,13 @@ class VideoFrame {
     void release();
     VideoFrame clone() const;
     bool empty() const;
+
+    // basic image processing
+    VideoFrame convert(PixelFormat fmt);
+    VideoFrame scale(int width, int height);
+    VideoFrame rotate(RotationMode mode);
+
+    cv::Mat mat() const;
 
   protected:
     AVFrame *_ptr = nullptr;

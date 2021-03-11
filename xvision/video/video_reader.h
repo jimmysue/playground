@@ -13,11 +13,11 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
+#include <libyuv/rotate.h>
+
 #include "video_frame.h"
 
 namespace xvision {
-
-enum RotationMode { kRotate0, kRotate90, kRotate180, kRotate270 };
 
 class VideoReader {
   private:
