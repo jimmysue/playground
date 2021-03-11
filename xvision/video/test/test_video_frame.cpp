@@ -26,6 +26,7 @@ void testVideoSeekKeyFrame() {
     VideoReader vr;
     {
         vr.close();
+        vr.grab();
         VideoReader vr2("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
         vr2.close();
         bool is_open = vr2.isOpen();

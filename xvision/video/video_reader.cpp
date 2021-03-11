@@ -80,6 +80,7 @@ void VideoReader::open(std::string const &filename, int thread_cout) {
         video_stream_idx = stream_idx;
         video_stream = fmt_ctx->streams[video_stream_idx];
         video_dec_ctx = dec_ctx;
+        status = GrabStatus::kReadFrame;
     }
 }
 
@@ -98,7 +99,7 @@ void VideoReader::close() {
 }
 
 bool VideoReader::isOpen() const {
-    return fmt_ctx && video_dec_ctx && video_stream && video_stream_idx >= 0;
+    return fmt_ctx && video_dec_ctx && video_stream && video_stream_idx >= 0 && bool(status);
 }
 
 void VideoReader::swap(VideoReader &v) noexcept {
@@ -167,6 +168,9 @@ read_frame:
 }
 
 double VideoReader::fps() const {
+    if (!isOpen()) {
+        throw std::logic_error("video reader not open");
+    }
     double fps = r2d(video_stream->avg_frame_rate);
     if (fps < 1e-9) {
         fps = 1.0 / r2d(video_dec_ctx->time_base);
@@ -175,14 +179,19 @@ double VideoReader::fps() const {
 }
 
 double VideoReader::duration() const {
-    double sec = (double)video_stream->duration * r2d(video_stream->time_base);
-    if (sec < 1e-9) {
-        sec = (double)(video_stream->duration) / double(AV_TIME_BASE);
+    double sec = 0.0;
+    if (isOpen()) {
+        sec = (double)video_stream->duration * r2d(video_stream->time_base);
+        if (sec < 1e-9) {
+            sec = (double)(video_stream->duration) / double(AV_TIME_BASE);
+        }
     }
     return sec;
 }
 
 RotationMode VideoReader::rotation() const {
+    if (!isOpen())
+        return RotationMode::kRotate0;
     int rotate = 0;
     AVDictionaryEntry *rotate_tag =
         av_dict_get(video_stream->metadata, "rotate", NULL, 0);
@@ -205,6 +214,8 @@ int VideoReader::number() const {
 }
 
 int VideoReader::seekFrame(int number) {
+    if (!isOpen())
+        throw std::logic_error("video reader not open!");
     number = std::max(0, std::min(total(), number));
     int delta = 2;
     int pos = seekKeyFrame(number - delta);
@@ -224,6 +235,9 @@ int VideoReader::seekFrame(double time) {
 }
 
 int VideoReader::seekKeyFrame(int number, bool backward) {
+    if (!isOpen()) {
+        throw std::logic_error("video reader not open");
+    }
     if (pkt.data) {
         av_packet_unref(&pkt);
     }
@@ -262,7 +276,7 @@ void VideoReader::init() {
     video_stream = nullptr;
     memset(&pkt, 0, sizeof(pkt));
     av_init_packet(&pkt);
-    status = GrabStatus::kReadFrame;
+    status = GrabStatus::kNotOpen;
 }
 
 int VideoReader::dts2number(int64_t dts) const {
@@ -271,6 +285,9 @@ int VideoReader::dts2number(int64_t dts) const {
 }
 
 double VideoReader::dts2sec(int64_t dts) const {
+    if (!isOpen()) {
+        throw std::logic_error("video reader not open");
+    }
     return (dts - video_stream->start_time) * r2d(video_stream->time_base);
 }
 

@@ -22,6 +22,7 @@ enum RotationMode { kRotate0, kRotate90, kRotate180, kRotate270 };
 class VideoReader {
   private:
     enum class GrabStatus {
+        kNotOpen = 0,
         kReadFrame,
         kSendPacket,
         kReceiveFrame,
@@ -58,17 +59,17 @@ class VideoReader {
     double duration() const;
     RotationMode rotation() const;
     int number() const;
-    
+
+    int time2number(double time) const;
 
   protected:
     void init();
-    bool grabPacket();
     int dts2number(int64_t dts) const;
     double dts2sec(int64_t dts) const;
     double r2d(AVRational r) const;
 
   private:
-    GrabStatus status = GrabStatus::kReadFrame;
+    GrabStatus status = GrabStatus::kNotOpen;
     int video_stream_idx = -1;
     AVFormatContext *fmt_ctx = nullptr;
     AVCodecContext *video_dec_ctx = nullptr;
