@@ -105,8 +105,6 @@ bool VideoReader::grab() {
     }
 read_frame:
     while (av_read_frame(fmt_ctx, &pkt) >= 0) {
-        std::cout << "av_read_frame grab" << std::endl;
-
         if (pkt.stream_index == video_stream_idx) {
         send_packet:
             ret = avcodec_send_packet(video_dec_ctx, &pkt);
@@ -126,7 +124,6 @@ read_frame:
             receive_frame:;
             }
         }
-        std::cout << "av_packet_unref" << std::endl;
         av_packet_unref(&pkt);
     }
     // flush
@@ -189,7 +186,6 @@ int VideoReader::seekFrame(int number) {
 
 int VideoReader::seekKeyFrame(int number, bool backward) {
     if (pkt.data) {
-        std::cout << "av_packet_unref" << std::endl;
         av_packet_unref(&pkt);
     }
     number = std::max(0, std::min(total(), number));
@@ -205,13 +201,11 @@ int VideoReader::seekKeyFrame(int number, bool backward) {
         }
         avcodec_flush_buffers(video_dec_ctx);
         while (av_read_frame(fmt_ctx, &pkt) >= 0) {
-            std::cout << "av_read_frame seekKeyFrame" << std::endl;
 
             if (pkt.stream_index == video_stream_idx) {
                 status = GrabStatus::kSendPacket;
                 return dts2number(pkt.dts);
             }
-            std::cout << "av_packet_unref" << std::endl;
             av_packet_unref(&pkt);
         }
     }
