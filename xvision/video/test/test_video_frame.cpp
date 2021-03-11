@@ -13,7 +13,7 @@ using namespace xvision;
 using namespace std;
 
 void testVideoReader() {
-    VideoReader vr1("/Users/jimmy/Documents/智能封面图/testset2/l3160goot8i.mp4");
+    VideoReader vr1("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
     int count = 0;
     while (vr1.grab()) {
         count++;
@@ -33,7 +33,7 @@ void testVideoSeekKeyFrame() {
 }
 
 void testVideoSeekFrame() {
-    VideoReader vr("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
+    VideoReader vr("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4", 8);
     int count = 0;
     for (int i = 0; i < vr.total(); ++i){
         int pos = vr.seekFrame(i);
