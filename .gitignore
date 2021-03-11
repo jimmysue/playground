@@ -34,3 +34,6 @@ build/
 .vscode/
 *.mp4
 .DS_store
+build/
+.vscode/
+.idea/
