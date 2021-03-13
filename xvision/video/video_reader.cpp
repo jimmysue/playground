@@ -46,6 +46,9 @@ void VideoReader::open(std::string const &filename, int thread_cout) {
     if (avformat_open_input(&fmt_ctx, filename.c_str(), NULL, NULL) < 0) {
         throw std::invalid_argument("avformat_open_input failed");
     }
+    if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) {
+        throw std::runtime_error("avformat_find_stream_info failed");
+    }
     int ret;
     AVStream *st = nullptr;
     AVCodecContext *dec_ctx = nullptr;
