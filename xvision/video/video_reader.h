@@ -55,11 +55,11 @@ class VideoReader {
     int width() const { return isOpen() ? video_dec_ctx->width : 0; };
     int height() const { return isOpen() ? video_dec_ctx->height : 0; };
     double fps() const;
-    int total() const { return isOpen() ? video_stream->nb_frames : 0; };
+    int total() const { return isOpen() && video_stream->nb_frames > 0? video_stream->nb_frames : duration() * fps(); };
     double duration() const;
     RotationMode rotation() const;
     int number() const;
-
+    double timestamp() const { return dts2sec(frame->best_effort_timestamp);}
   protected:
     void init();
     int dts2number(int64_t dts) const;

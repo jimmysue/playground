@@ -80,14 +80,24 @@ void testVideoFrame() {
 }
 
 void testVideoFrameProc() {
-    VideoReader vr1("/Users/jimmy/Documents/data/videos/n0034aqim33.mp4");
+    VideoReader vr1("http://9.21.8.131:80/vhqts.tc.qq.com/"
+                    "PdRknhvF5FuPOq0kis2acm-8U-3-"
+                    "Px8baSPkuaHpyliR7r1ZFvqVMSv3IUkrSLYSVSYyKRljatMQDeFWXTwa6_"
+                    "AAf3Vlzrxl9JFgUjVYnuSob_WTUBBdnQ/"
+                    "d00361djxcz.322019.1.mp4?ver=5&sha="
+                    "6a1f0cb469728d5301fc1cf565650fa058ed2e8b");
     int count = 0;
+    vr1.seekFrame(15.0);
+    std::cout << "duration: " << vr1.duration() << std::endl;
+    std::cout << "total: " << vr1.total() << std::endl;
+    cout << vr1.fps();
     while (vr1.grab()) {
         count++;
         auto frame = vr1.retrieve();
         std::stringstream ss;
 
         ss << count << ".jpeg";
+        cout << vr1.number() << endl;
         cv::imwrite(ss.str(), frame.mat());
 
         ss.clear();
@@ -104,9 +114,32 @@ void testVideoFrameProc() {
     cout << "total: " << vr1.total() << " count: " << count << endl;
 }
 
+void testVideoMeta() {
+    std::string filename =
+        "http://100.94.12.42:80/vfilets.tc.qq.com/"
+        "Z3sKB6sSaWV4KAy105ErdRec-waZ-MWdyZM5NhymbKzlU9Cdgk-"
+        "JNtrWkd0zsLlDx1usJGie5GtpWp0NMZizHu1MZOJuh4jo6sNIvgyxBOdOM0DK-nUxdA/"
+        "c0025973n2t.321002.ts.m3u8?ver=4&sha="
+        "2791eb2bd4bae1eed828abe5241cd294d583b66d";
+    VideoReader vr(filename);
+    cout << "file duration:" << vr.duration() << endl
+         << "total: " << vr.total() << endl
+         << "fps: " << vr.fps() << endl;
+    int k = vr.seekFrame(600.0);
+    for (auto i = 0; i < 10 && vr.grab(); ++i) {
+        auto image = vr.retrieve().mat();
+        auto timestamp = vr.timestamp();
+        auto ts = double(vr.number()) / vr.total() * vr.duration();
+        std::cout << "timestamp: " << timestamp << std::endl;
+        std::string filename =
+            std::to_string(i) + "-" + std::to_string(vr.number()) + ".jpg";
+        cv::imwrite(filename, image);
+    }
+}
+
 int main(int argc, char **argv) {
-    testVideoFrameProc();
-    testVideoFrame();
-    testVideoSeekKeyFrame();
-    testVideoSeekFrame();
+    //    testVideoFrameProc();
+    testVideoMeta();
+    //    testVideoSeekKeyFrame();
+    //    testVideoSeekFrame();
 }

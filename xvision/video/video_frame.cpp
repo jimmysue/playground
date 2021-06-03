@@ -4,6 +4,13 @@
 
 #include <utility>
 
+extern "C" {
+#include <libavfilter/avfilter.h>
+#include <libavutil/avutil.h>
+#include <libswscale/swscale.h>
+}
+
+
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 
@@ -63,7 +70,16 @@ VideoFrame VideoFrame::clone() const {
 bool VideoFrame::empty() const { return _ptr->width <= 0 || _ptr->height <= 0; }
 
 ////////////////////////////////////////////////////////////////////
-VideoFrame VideoFrame::convert(PixelFormat fmt) const {}
+VideoFrame VideoFrame::convert(PixelFormat fmt) const {
+    auto ptr = sws_getContext(_ptr->width, _ptr->height, PixelFormat(_ptr->format), _ptr->width, _ptr->height,
+                              fmt, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+    std::unique_ptr<SwsContext, void (*)(SwsContext*)> handler(ptr, sws_freeContext);
+    assert(handler);
+    VideoFrame tmp(_ptr->width, _ptr->height, fmt);
+    sws_scale(handler.get(), _ptr->data, _ptr->linesize, 0, _ptr->height, tmp->data,
+              tmp->linesize);
+    return tmp;
+}
 
 VideoFrame VideoFrame::scale(int width, int height) const {
     VideoFrame ret;
@@ -80,7 +96,8 @@ VideoFrame VideoFrame::scale(int width, int height) const {
         break;
     }
     default:
-        throw std::runtime_error("not supported");
+        auto tmp = this->convert(AV_PIX_FMT_YUV420P);
+        ret = tmp.scale(width, height);
     }
     return ret;
 }
@@ -136,7 +153,8 @@ cv::Mat VideoFrame::mat(int flag) const {
         }
         break;
     default:
-        throw std::runtime_error("not supported");
+        auto tmp = this->convert(AV_PIX_FMT_YUV420P);
+        dst = tmp.mat(flag);
     }
     return dst;
 }

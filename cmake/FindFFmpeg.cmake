@@ -116,7 +116,7 @@ if (NOT FFMPEG_LIBRARIES)
       set(FFMPEG_DEFINITIONS ${FFMPEG_DEFINITIONS} ${${_component}_DEFINITIONS})
       list(APPEND FFMPEG_INCLUDE_DIRS ${${_component}_INCLUDE_DIRS})
     else ()
-      # message(STATUS "Required component ${_component} missing.")
+       message(STATUS "Required component ${_component} missing.")
     endif ()
   endforeach ()
 

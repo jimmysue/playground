@@ -43,6 +43,8 @@ VideoReader::~VideoReader() {
 void VideoReader::open(std::string const &filename, int thread_cout) {
     detail::FFmpegRegister::init();
     close();
+//    fmt_ctx = avformat_alloc_context();
+//    fmt_ctx->protocol_whitelist="http,https,udp,rtp,file,crypto,data,tcp";
     if (avformat_open_input(&fmt_ctx, filename.c_str(), NULL, NULL) < 0) {
         throw std::invalid_argument("avformat_open_input failed");
     }
@@ -184,9 +186,14 @@ double VideoReader::fps() const {
 double VideoReader::duration() const {
     double sec = 0.0;
     if (isOpen()) {
-        sec = (double)video_stream->duration * r2d(video_stream->time_base);
-        if (sec < 1e-9) {
-            sec = (double)(video_stream->duration) / double(AV_TIME_BASE);
+        if (fmt_ctx->duration != AV_NOPTS_VALUE) {
+            int64_t duration = fmt_ctx->duration + (fmt_ctx->duration <= INT64_MAX - 5000 ? 5000 : 0);
+            sec = double(duration) / AV_TIME_BASE;
+        }else {
+            sec = (double)video_stream->duration * r2d(video_stream->time_base);
+            if (sec < 1e-9) {
+                sec = (double)(video_stream->duration) / double(AV_TIME_BASE);
+            }
         }
     }
     return sec;
@@ -249,6 +256,7 @@ int VideoReader::seekKeyFrame(int number, bool backward) {
     double timebase = r2d(video_stream->time_base);
     int64_t timestamp =
         video_stream->start_time + (int64_t)(second / timebase + .5);
+    std::cout << "pts: " << timestamp << std::endl;
     if (total() > 0) {
         int flag = backward ? AVSEEK_FLAG_BACKWARD : 0;
         int ret = av_seek_frame(fmt_ctx, video_stream_idx, timestamp, flag);
